@@ -1,5 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
+#include <FLEXCAN_T4.h>
 
 //Motor Position Pins
 #define MOTOR_POSITION1_PIN 0
@@ -16,5 +17,6 @@
 #define LOCK_CONTROL_PIN2 12
 
 extern bool debug_flag;
+extern FLEXCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> can;
 void initalize();
 #endif //CONFIG_H
