@@ -1,8 +1,5 @@
 #include "position.h"
 #include "config.h"
-#include "core_pins.h"
-#include "state.h"
-#include <cstdint>
 
 void stop_motor(){
     digitalWrite(OPEN_CONTROL_PIN1, LOW);
@@ -12,14 +9,16 @@ void stop_motor(){
     digitalWrite(LOCK_CONTROL_PIN2, LOW);
 }
 
-//Same function but i feel like naming it stop motor and using it else where is kinda odd
-//as the motor isnt necessarily stoped in the process.
-void set_control_pins_low(){
-    digitalWrite(OPEN_CONTROL_PIN1, LOW);
-    digitalWrite(OPEN_CONTROL_PIN2, LOW);
+void drive_towards_open(){
+    stop_motor();
+    digitalWrite(OPEN_CONTROL_PIN1, HIGH);
+    digitalWrite(OPEN_CONTROL_PIN2, HIGH);
+}
 
-    digitalWrite(LOCK_CONTROL_PIN1, LOW);
-    digitalWrite(LOCK_CONTROL_PIN2, LOW);
+void drive_towards_locked(){
+    stop_motor();
+    digitalWrite(LOCK_CONTROL_PIN1, HIGH);
+    digitalWrite(LOCK_CONTROL_PIN2, HIGH);
 }
 
 DiffState get_position(){
@@ -29,7 +28,7 @@ DiffState get_position(){
 
     if (motor_position1_value == HIGH &&
         motor_position2_value == LOW  &&
-        motor_position3_value == LOW ){
+        motor_position3_value == LOW){
         return ST_OPEN;
     }
 
@@ -44,116 +43,45 @@ DiffState get_position(){
         return ST_LOCKED;
     }
 
-    return ST_UNKOWN;
+    return ST_UNKNOWN;
+}
+
+// Keep the motor running until the diff reaches target, or give up after MOVE_TIMEOUT
+void wait_for(DiffState target){
+    uint32_t start_time = millis();
+
+    while (millis() - start_time < MOVE_TIMEOUT){
+        if (get_position() == target){
+            stop_motor();
+            DEBUG_PRINT("diff: done");
+            return;
+        }
+    }
+
+    stop_motor();
+    DEBUG_PRINT("diff: FAULT - move timed out");
 }
 
 void locked_to_semi(){
-    Serial.println("Diff: LOCKED -> SEMI");
-    stop_motor();
-
-    digitalWrite(OPEN_CONTROL_PIN1, HIGH);
-    digitalWrite(OPEN_CONTROL_PIN2, HIGH);
-
-    uint32_t start_time = millis();
-
-    while (true){
-        uint32_t now = millis();
-
-        if (now - start_time >= WAIT_TIME){
-        uint8_t motor_position3_value = digitalRead(MOTOR_POSITION3_PIN);
-        uint8_t motor_position2_value = digitalRead(MOTOR_POSITION2_PIN);
-
-        if (motor_position2_value == HIGH &&
-            motor_position3_value == HIGH){
-            
-            stop_motor();
-
-            Serial.println("diff: SEMI");
-            return;
-            }
-        }
-    }
+    DEBUG_PRINT("diff: LOCKED -> SEMI");
+    drive_towards_open();
+    wait_for(ST_SEMI);
 }
 
 void semi_to_locked(){
-    Serial.println("diff: SEMI -> LOCKED");
-    stop_motor();
-
-    digitalWrite(LOCK_CONTROL_PIN1, HIGH);
-    digitalWrite(LOCK_CONTROL_PIN2, HIGH);
-
-    uint32_t start_time = millis();
-
-    while (true){
-        uint32_t now = millis();
-        if (now - start_time >= WAIT_TIME){
-        uint8_t motor_position1_value = digitalRead(MOTOR_POSITION1_PIN);
-        uint8_t motor_position2_value = digitalRead(MOTOR_POSITION2_PIN);
-        uint8_t motor_position3_value = digitalRead(MOTOR_POSITION3_PIN);
-        
-        if (motor_position1_value == HIGH && 
-            motor_position2_value == HIGH && 
-            motor_position3_value == LOW){
-                stop_motor();
-                Serial.println("diff: LOCKED");
-                return;
-            }
-        }
-    }
+    DEBUG_PRINT("diff: SEMI -> LOCKED");
+    drive_towards_locked();
+    wait_for(ST_LOCKED);
 }
 
 void semi_to_open(){
-    Serial.println("diff: SEMI -> OPEN");
-    stop_motor();
-
-    digitalWrite(OPEN_CONTROL_PIN1, HIGH);
-    digitalWrite(OPEN_CONTROL_PIN2, HIGH);
-
-    uint32_t start_time = millis();
-    
-    while (true){
-        uint32_t now = millis();
-        if (now - start_time >= WAIT_TIME){
-
-            uint8_t motor_position1_value = digitalRead(MOTOR_POSITION1_PIN);
-            uint8_t motor_position2_value = digitalRead(MOTOR_POSITION2_PIN);
-            uint8_t motor_position3_value = digitalRead(MOTOR_POSITION3_PIN);
-
-            if (motor_position1_value == HIGH &&
-                motor_position2_value == LOW  &&
-                motor_position3_value == LOW ){
-                    stop_motor();
-                    Serial.println("diff: OPEN");
-                    return;
-            }
-        }
-    }
+    DEBUG_PRINT("diff: SEMI -> OPEN");
+    drive_towards_open();
+    wait_for(ST_OPEN);
 }
 
 void open_to_semi(){
-    Serial.println("diff OPEN -> SEMI");
-    stop_motor();
-    
-    digitalWrite(LOCK_CONTROL_PIN1, HIGH);
-    digitalWrite(LOCK_CONTROL_PIN2, HIGH);
-
-    uint32_t start_time = millis();
-
-    while (true){
-        uint32_t now = millis();
-        if (now - start_time >= WAIT_TIME){
-            uint8_t motor_position2_value = digitalRead(MOTOR_POSITION2_PIN);
-            uint8_t motor_position3_value = digitalRead(MOTOR_POSITION3_PIN);
-            
-            if (motor_position2_value == HIGH &&
-                motor_position3_value == HIGH){
-                stop_motor();
-                Serial.println("diff: SEMI");
-                return;
-            }
-        }
-    }
+    DEBUG_PRINT("diff: OPEN -> SEMI");
+    drive_towards_locked();
+    wait_for(ST_SEMI);
 }
-
-
-

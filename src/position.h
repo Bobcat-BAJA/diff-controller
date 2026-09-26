@@ -3,12 +3,10 @@
 #include <Arduino.h>
 #include "state.h"
 
-#define WAIT_TIME 1300
+#define MOVE_TIMEOUT 4000 // ms - stop the motor if the target isn't reached by then
 
 void stop_motor();
-void set_control_pins_low();
-
-DiffState get_position(); // State
+DiffState get_position();
 
 void semi_to_open();
 void open_to_semi();
@@ -16,6 +14,4 @@ void open_to_semi();
 void semi_to_locked();
 void locked_to_semi();
 
-//
-
-#endif //POSITION_H 
+#endif //POSITION_H

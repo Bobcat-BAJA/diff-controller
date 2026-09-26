@@ -1,27 +1,24 @@
 #include "state.h"
-#include <cstdint>
 #include "position.h"
+#include "config.h"
 
-FLEXCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> can;
+void update_state(uint8_t move_towards_open, uint8_t move_towards_locked){
+    if (move_towards_open && move_towards_locked){
+        return; // both pressed - ignore
+    }
 
-
-
-// 0 = left 1 = right 
-void update_state(DiffState &diffstate, uint8_t move_towards_open, uint8_t move_towards_locked){
-    switch (diffstate){
+    switch (get_position()){ // always read the real position from the sensors
         case ST_OPEN:
             if (move_towards_locked){
-                diffstate = ST_SEMI;
                 open_to_semi();
             }
         break;
 
         case ST_SEMI:
-            if (move_towards_locked && !move_towards_open){
-                diffstate = ST_LOCKED;
+            if (move_towards_locked){
                 semi_to_locked();
             }
-            if (move_towards_open && !move_towards_locked){
+            if (move_towards_open){
                 semi_to_open();
             }
         break;
@@ -33,13 +30,13 @@ void update_state(DiffState &diffstate, uint8_t move_towards_open, uint8_t move_
         break;
 
         case ST_UNKNOWN:
-        break;
-
-        default:
+            DEBUG_PRINT("diff: position unknown - not moving");
         break;
     }
 }
 
+// Runs in the CAN interrupt. buf[0] = left paddle (towards open), buf[1] = right paddle (towards locked)
 void can_callback(const CAN_message_t &msg){
-    
+    if (msg.len < 2) return;
+    update_state(msg.buf[0], msg.buf[1]);
 }

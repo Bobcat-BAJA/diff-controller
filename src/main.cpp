@@ -1,13 +1,11 @@
 #include <Arduino.h>
 #include "config.h"
-#include "position.h"
-#include "state.h"
-
 
 void setup() {
-    initalize();
+    initialize();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+    // Nothing: can_callback runs from the CAN RX interrupt
+    // (FlexCAN_T4 calls it directly as long as can.events() is never used).
 }
