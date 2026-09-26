@@ -24,9 +24,6 @@ void update_state(uint8_t move_towards_open, uint8_t move_towards_locked){
         break;
 
         case ST_LOCKED:
-            if (move_towards_open){
-                locked_to_semi();
-            }
         break;
 
         case ST_UNKNOWN:
@@ -35,8 +32,74 @@ void update_state(uint8_t move_towards_open, uint8_t move_towards_locked){
     }
 }
 
-// Runs in the CAN interrupt. buf[0] = left paddle (towards open), buf[1] = right paddle (towards locked)
-void can_callback(const CAN_message_t &msg){
-    if (msg.len < 2) return;
-    update_state(msg.buf[0], msg.buf[1]);
+/*CENTER
+ *BOTTOM
+ *RIGHT
+ *TOP
+ * */
+
+void can_callback(const int &msg){
+    //For the front diff uncomment these and comment the others
+    if (msg.buf[5] == 0xFF){
+        update_state(0, 1);
+    }
+    if (msg.buf[2] ==  0xFF ){
+        update_state(1, 0);
+    }
+
+    //For the rear diff uncomment these and comment the others
+    if (msg.buf[3] == 0xFF){
+        update_state(0, 1);
+    }
+    if (msg.buf[1] == 0xFF){
+        update_state(1, 0);
+    }
+}
+
+void default_to_open(){
+    DiffState current_state = get_position();
+
+    if (current_state == ST_OPEN){
+        return;
+    }
+    
+    if (current_state == ST_SEMI){
+        semi_to_open();
+        return;
+    }
+
+    if (current_state == ST_LOCKED){
+        locked_to_semi();
+        delay(500);
+        semi_to_open();
+        return;
+    }
+    state_message.id = CAN_ID;
+    state_message.len = 1;
+    state_message.buf[0] = 0x31;
+}
+
+void default_to_locked(){
+    DiffState = get_position();
+    
+    if (current_state == ST_OPEN){
+        open_to_semi();
+        delay(500);
+        semi_to_locked();
+    }
+    
+    else if (current_state == ST_SEMI){
+        semi_to_locked();
+    }
+    else if(current_state == ST_LOCKED{
+        
+    }
+
+    CAN_message_t state_message;
+    state_message.id = CAN_ID;
+    state_message.len = 1;
+    state_message.buf[0] = 0x33;
+
+    can.write(state_message);
+    return;
 }

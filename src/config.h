@@ -20,6 +20,8 @@
 #define LOCK_CONTROL_PIN1 10
 #define LOCK_CONTROL_PIN2 12
 
+#include CAN_ID 0x51
+
 extern bool debug_flag;
 extern FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> can;
 
