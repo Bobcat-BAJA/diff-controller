@@ -10,3 +10,5 @@ compile_commands.json
 include/
 lib/
 test/
+
+/platformio.ini
